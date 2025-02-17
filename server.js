@@ -3,29 +3,47 @@ const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const jwt = require("jsonwebtoken");
-const bcrypt = require("bcrypt");
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = 5000;
 
 app.use(cors());
 app.use(bodyParser.json());
 
 const users = [
-  { username: "admin", password: bcrypt.hashSync("123456", 10) },
-  { username: "user", password: bcrypt.hashSync("password", 10) },
+  { 
+    username: "admin", 
+    password: "123456" 
+  },
 ];
 
-app.post("/login", async (req, res) => {
-  const { username, password } = req.body;
+app.post("/login", (req, res) => {
+  const username = req.body.username?.trim();
+  const password = req.body.password?.trim();
 
   if (!username || !password) {
-    return res.status(400).json({ statusCode: 400, message: "Campos requeridos" });
+    return res.status(400).json(
+      { statusCode: 400, 
+        message: "Complete los campos usuario y contraseña" 
+      }
+    );
   }
 
-  const user = users.find((u) => u.username === username);
-  if (!user || !(await bcrypt.compare(password, user.password))) {
-    return res.status(401).json({ statusCode: 401, message: "Credenciales incorrectas" });
+  const user = users.find((u) => u.username === username && u.password === password);
+  if (!user) {
+    return res.status(401).json(
+      { statusCode: 401, 
+        message: "Credenciales incorrectas" 
+      }
+    );
+  }
+
+  if (!process.env.JWT_SECRET) {
+    return res.status(500).json(
+      { statusCode: 500, 
+        message: "Error interno: JWT_SECRET no está definido" 
+      }
+    );
   }
 
   const token = jwt.sign({ username }, process.env.JWT_SECRET, { expiresIn: "1m" });
